@@ -56,12 +56,18 @@ button:hover {
     position: fixed;
     bottom: 25px;
     left: 25px;
-    width: 620px;
-    height: 380px;
+    width: 806px;
+    height: 494px;
     z-index: 1000;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    opacity: 0.3;
+    transition: opacity 0.2s ease-in-out;
 } 
+
+#map:hover {
+    opacity: 1;
+}
 
 
 #logo {

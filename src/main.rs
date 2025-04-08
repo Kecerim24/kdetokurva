@@ -1,23 +1,38 @@
+use axum::{routing::get, Json, Router};
+use serde::Serialize;
+use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
 use rand::Rng;
 use geo::{Point, Contains, BoundingRect, LineString, Polygon};
 use geojson::GeoJson;
 use std::fs::File;
 use std::io::Read;
-use web_server;
 
-
-
-fn main() {
-    let (lng, lat) = get_random_location_in_country("czech_republic.json");
-    let response_text = format!("{}, {}", lat, lng);
-
-    let server = web_server::new();
-    server.get("/", Box::new(move |_request: web_server::Request, _response: web_server::Response|
-        response_text.clone().into()))
-    .launch(8080);
+#[derive(Serialize)]
+struct LocationResponse {
+    lon: f64,
+    lat: f64,
 }
 
-fn get_random_location_in_country(path: &str) -> (f64, f64) {
+#[tokio::main]
+async fn main() {
+    // build our application with the API route and static file serving
+    let app = Router::new()
+        .route("/api/random-location", get(random_location_handler))
+        .fallback_service(ServeDir::new("static"));
+
+    // run our app with hyper, listening globally on port 3000
+    let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn random_location_handler() -> Json<LocationResponse> {
+    let location = get_random_location_in_country("czech_republic.json");
+    Json(location)
+}
+
+fn get_random_location_in_country(path: &str) -> LocationResponse {
     // Load and parse GeoJSON file
     let mut file = File::open(path).expect("Failed to open GeoJSON file");
     let mut contents = String::new();
@@ -64,7 +79,7 @@ fn get_random_location_in_country(path: &str) -> (f64, f64) {
         let point = Point::new(lng, lat);
 
         if polygon.contains(&point) {
-            return (lng, lat);
+            return LocationResponse { lon: lng, lat: lat };
         }
     }
 }

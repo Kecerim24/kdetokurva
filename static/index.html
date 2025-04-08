@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+	<meta name="viewport"
+		content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, minimal-ui" />
+	<meta charset="utf-8" />
+	<meta name="description" content="Panorama testing" />
+	<title>kde to kurva?</title>
+
+	<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+	<link rel="manifest" href="favicon/site.webmanifest">
+
+	<meta name="msapplication-TileColor" content="#da532c" />
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+		integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+		integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<script type="text/javascript" async src='https://api.mapy.cz/js/panorama/v1/panorama.js' id="panoScript"></script>
+</head>
+
+<body>
+	<div id="panoCont"></div>
+	<div id="infoCont">Pano is loading...</div>
+	<div id="map"></div>
+	<div id="logo">
+		<a href="https://mapy.cz/">
+			<img src="https://api.mapy.cz/img/api/logo.svg" alt="Mapy.cz">
+		</a>
+	</div>
+
+	<script src="index.js"></script>
+</body>
+
+</html>
