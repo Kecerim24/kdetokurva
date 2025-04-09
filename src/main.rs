@@ -1,4 +1,4 @@
-use axum::{routing::get, Json, Router};
+use axum::{extract::Path, http, response::{IntoResponse, Response}, routing::get, Json, Router};
 use serde::Serialize;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
@@ -7,6 +7,8 @@ use geo::{Point, Contains, BoundingRect, LineString, Polygon};
 use geojson::GeoJson;
 use std::fs::File;
 use std::io::Read;
+use reqwest::StatusCode;
+use http::HeaderMap;
 
 #[derive(Serialize)]
 struct LocationResponse {
@@ -18,7 +20,9 @@ struct LocationResponse {
 async fn main() {
     // build our application with the API route and static file serving
     let app = Router::new()
+        .route("/api/api-key", get(api_key_handler))
         .route("/api/random-location", get(random_location_handler))
+        .route("/api/tiles/:type/:z/:x/:y", get(tile_handler))
         .fallback_service(ServeDir::new("static"));
 
     // run our app with hyper, listening globally on port 3000
@@ -27,12 +31,16 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn random_location_handler() -> Json<LocationResponse> {
-    let location = get_random_location_in_country("czech_republic.json");
-    Json(location)
+async fn api_key_handler() -> String {
+    env!("API_KEY").to_string()
 }
 
-fn get_random_location_in_country(path: &str) -> LocationResponse {
+async fn random_location_handler() -> Json<LocationResponse> {
+    let (lon, lat) = get_random_location_in_country("czech_republic.json");
+    Json(LocationResponse { lon, lat })
+}
+
+fn get_random_location_in_country(path: &str) -> (f64, f64) {
     // Load and parse GeoJSON file
     let mut file = File::open(path).expect("Failed to open GeoJSON file");
     let mut contents = String::new();
@@ -79,7 +87,41 @@ fn get_random_location_in_country(path: &str) -> LocationResponse {
         let point = Point::new(lng, lat);
 
         if polygon.contains(&point) {
-            return LocationResponse { lon: lng, lat: lat };
+            return (lng, lat);
         }
+    }
+}
+
+// Handler for proxying map tiles
+async fn tile_handler(
+    Path((tile_type, z, x, y)): Path<(String, u32, u32, u32)>,
+) -> Result<Response, StatusCode> {
+    let api_key = env!("API_KEY").to_string();
+    let mapy_url = format!(
+        "https://api.mapy.cz/v1/maptiles/{}/256/{}/{}/{}?apikey={}",
+        tile_type, z, x, y, api_key
+    );
+
+    let client = reqwest::Client::new();
+    let response = client.get(&mapy_url).send().await.map_err(|e| {
+        eprintln!("Failed to fetch tile from Mapy.cz: {}", e);
+        StatusCode::BAD_GATEWAY
+    })?;
+
+    if response.status().is_success() {
+        let mut headers = HeaderMap::new();
+        if let Some(content_type) = response.headers().get(http::header::CONTENT_TYPE) {
+            headers.insert(http::header::CONTENT_TYPE, content_type.clone());
+        }
+
+        let image_bytes = response.bytes().await.map_err(|e| {
+            eprintln!("Failed to read tile bytes: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+        Ok((headers, image_bytes).into_response())
+    } else {
+        eprintln!("Mapy.cz returned error: {}", response.status());
+        Err(StatusCode::BAD_GATEWAY)
     }
 }

@@ -1,38 +1,40 @@
 const script = document.querySelector("#panoScript");
-const API_KEY = 'BFaiuQHw2KOQH7m6gQbkyEkTRDwGd6TmusYAxnRPsyk';
 
 async function main() {
-    const locationData = await getRandomLocation();
+    const apiKey = await fetch('/api/api-key').then(res => res.text()); // jednoho krásného dne bude api klíč giga tajnej, ale dnes to nebude
 
-    var panoData = await createPano(locationData);
+
+    const locationData = await getRandomLocation();
+    var panoData = await createPano(locationData, apiKey); // Pass API key
+    
     while (panoData.error) {
         const panoCont = document.getElementById('panoCont');
         while (panoCont.firstChild) {
             panoCont.removeChild(panoCont.firstChild);
         }
         const locationData = await getRandomLocation();
-        panoData = await createPano(locationData);
+        panoData = await createPano(locationData, apiKey); // Pass API key
     }
 
-
-    const map = L.map('map').setView([49.8022514, 15.485], 7);
+    // Create map and center it on center of Czechia
+    const map = L.map('map').setView([49.8175, 15.4730], 7);
 
     /*
     We store all our tile layers in an object, because we will
     need to pass that to the layers switching map control.
     */
     const tileLayers = {
-        'Basic': L.tileLayer(`https://api.mapy.cz/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${API_KEY}`, {
+        'Basic': L.tileLayer(`/api/tiles/basic/{z}/{x}/{y}`, { // Use backend proxy
             minZoom: 6,
             maxZoom: 19,
             attribution: '<a href="https://api.mapy.cz/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
         }),
-        'Outdoor': L.tileLayer(`https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=${API_KEY}`, {
+        'Outdoor': L.tileLayer(`/api/tiles/outdoor/{z}/{x}/{y}`, { // Use backend proxy
             minZoom: 6,
             maxZoom: 19,
             attribution: '<a href="https://api.mapy.cz/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
         }),
-        'Winter': L.tileLayer(`https://api.mapy.cz/v1/maptiles/winter/256/{z}/{x}/{y}?apikey=${API_KEY}`, {
+        'Winter': L.tileLayer(`/api/tiles/winter/{z}/{x}/{y}`, { // Use backend proxy
             minZoom: 6,
             maxZoom: 19,
             attribution: '<a href="https://api.mapy.cz/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
@@ -73,8 +75,18 @@ async function main() {
         },
     });
     const logoControl = new LogoControl().addTo(map);
-    var marker = L.marker([panoData.lat, panoData.lon]).addTo(map);
 
+    // Add click handler to create markers on map click
+    let currentMarker = null;
+    map.on('click', function(e) {
+        // Remove existing marker if there is one
+        if (currentMarker) {
+            map.removeLayer(currentMarker);
+        }
+
+        // Create new marker at clicked location
+        currentMarker = L.marker(e.latlng).addTo(map);
+    });
 }
 
 async function getRandomLocation() {
@@ -94,21 +106,19 @@ async function getRandomLocation() {
 }
 
 
-async function createPano(locationData) {
+async function createPano(locationData, apiKey) { // Added apiKey parameter
     const container = document.querySelector("#panoCont");
     const infoContainer = document.querySelector("#infoCont");
 
     infoContainer.textContent = "Loading pano from position...";
 
     const panoData = await Panorama.panoramaFromPosition({
-        // Generate random coordinates within Czechia's rough bounding box
-
         parent: container,
         // WGS84 lon/lat
         lon: locationData.lon,
         lat: locationData.lat,
         // api key
-        apiKey: API_KEY,
+        apiKey: apiKey, // Use passed apiKey
         // optional view params
         yaw: 5.43,
         pitch: Math.PI / 6,
