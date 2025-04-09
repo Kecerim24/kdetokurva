@@ -1,4 +1,5 @@
-body, html {
+body,
+html {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -20,7 +21,7 @@ body, html {
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     padding: 10px;
     border-radius: 5px;
     color: white;
@@ -33,7 +34,7 @@ body, html {
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     padding: 10px;
     border-radius: 5px;
     color: white;
@@ -60,20 +61,68 @@ button:hover {
     height: 494px;
     z-index: 1000;
     border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     opacity: 0.3;
     transition: opacity 0.2s ease-in-out;
-} 
+}
 
 #map:hover {
     opacity: 1;
 }
 
+#confirmButton {
+    position: fixed;
+    bottom: 525px;
+    left: 25px;
+    z-index: 1000;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    display: none;
+}
+
+#confirmButton:hover {
+    background: #45a049;
+}
 
 #logo {
     position: absolute;
     bottom: 6px;
-    right: 9px;    
+    right: 9px;
     z-index: 1000;
-    display: none;  
+    display: none;
+}
+
+#resultBanner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 40px;
+    border-radius: 10px;
+    font-size: 24px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
 }

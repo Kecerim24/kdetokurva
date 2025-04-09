@@ -1,12 +1,10 @@
-const script = document.querySelector("#panoScript");
 
 async function main() {
     const apiKey = await fetch('/api/api-key').then(res => res.text()); // jednoho krásného dne bude api klíč giga tajnej, ale dnes to nebude
 
-
     const locationData = await getRandomLocation();
     var panoData = await createPano(locationData, apiKey); // Pass API key
-    
+
     while (panoData.error) {
         const panoCont = document.getElementById('panoCont');
         while (panoCont.firstChild) {
@@ -24,17 +22,17 @@ async function main() {
     need to pass that to the layers switching map control.
     */
     const tileLayers = {
-        'Basic': L.tileLayer(`/api/tiles/basic/{z}/{x}/{y}`, { // Use backend proxy
+        'Základní': L.tileLayer(`/api/tiles/basic/{z}/{x}/{y}`, { // Use backend proxy
             minZoom: 6,
             maxZoom: 19,
             attribution: '<a href="https://api.mapy.cz/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
         }),
-        'Outdoor': L.tileLayer(`/api/tiles/outdoor/{z}/{x}/{y}`, { // Use backend proxy
+        'Turistická': L.tileLayer(`/api/tiles/outdoor/{z}/{x}/{y}`, { // Use backend proxy
             minZoom: 6,
             maxZoom: 19,
             attribution: '<a href="https://api.mapy.cz/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
         }),
-        'Winter': L.tileLayer(`/api/tiles/winter/{z}/{x}/{y}`, { // Use backend proxy
+        'Zimní': L.tileLayer(`/api/tiles/winter/{z}/{x}/{y}`, { // Use backend proxy
             minZoom: 6,
             maxZoom: 19,
             attribution: '<a href="https://api.mapy.cz/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
@@ -45,7 +43,7 @@ async function main() {
     Then we add the first raster tile layer to the map.
     See https://leafletjs.com/reference.html#tilelayer
     */
-    tileLayers['Outdoor'].addTo(map);
+    tileLayers['Turistická'].addTo(map);
 
     // Leaflet has a built-in map control for switching layers.
     L.control.layers(tileLayers).addTo(map);
@@ -74,20 +72,69 @@ async function main() {
             return container;
         },
     });
-    const logoControl = new LogoControl().addTo(map);
+    new LogoControl().addTo(map);
 
     // Add click handler to create markers on map click
-    let currentMarker = null;
-    map.on('click', function(e) {
+    let guessMarker = null;
+    map.on('click', function (e) {
         // Remove existing marker if there is one
-        if (currentMarker) {
-            map.removeLayer(currentMarker);
+        if (guessMarker) {
+            map.removeLayer(guessMarker);
         }
 
         // Create new marker at clicked location
-        currentMarker = L.marker(e.latlng).addTo(map);
+        guessMarker = L.marker(e.latlng).addTo(map);
+        document.getElementById('confirmButton').style.display = 'block';
+    });
+
+    document.getElementById('confirmButton').addEventListener('click', async function () {
+        const startMarker = L.marker([panoData.lat, panoData.lon]).addTo(map);
+        var polyline = L.polyline([[panoData.lat, panoData.lon], [guessMarker.getLatLng().lat, guessMarker.getLatLng().lng]], { color: 'red' }).addTo(map);
+        // Get distance between guess and actual location
+        const response = await fetch('/api/distance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                lat1: panoData.lat,
+                lon1: panoData.lon,
+                lat2: guessMarker.getLatLng().lat,
+                lon2: guessMarker.getLatLng().lng
+            })
+        });
+        const distanceData = await response.json();
+        const resultBanner = document.getElementById('resultBanner');
+        resultBanner.textContent = `Vzdálenost: ${distanceData.distance_km.toFixed(3)} km`;
+        resultBanner.style.display = 'block';
+
+        // Hide the banner after 4 seconds
+        setTimeout(async () => {
+            resultBanner.style.display = 'none';
+            // Reset everything
+            map.removeLayer(startMarker);
+            map.removeLayer(guessMarker);
+            map.removeLayer(polyline);
+            map.setView([49.8175, 15.4730], 7);
+            document.getElementById('confirmButton').style.display = 'none';
+            while (panoCont.firstChild) {
+                panoCont.removeChild(panoCont.firstChild);
+            }
+            // Get new location and create new panorama
+            const locationData = await getRandomLocation();
+            panoData = await createPano(locationData, apiKey);
+            while (panoData.error) {
+                while (panoCont.firstChild) {
+                    panoCont.removeChild(panoCont.firstChild);
+                }
+                const locationData = await getRandomLocation();
+                panoData = await createPano(locationData, apiKey);
+            }
+        }, 4000);
     });
 }
+
+main();
 
 async function getRandomLocation() {
     try {
@@ -139,8 +186,5 @@ async function createPano(locationData, apiKey) { // Added apiKey parameter
     };
 }
 
-script.addEventListener("load", () => {
-    main();
-});
 
 

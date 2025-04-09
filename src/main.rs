@@ -1,19 +1,39 @@
-use axum::{extract::Path, http, response::{IntoResponse, Response}, routing::get, Json, Router};
-use serde::Serialize;
-use tokio::net::TcpListener;
-use tower_http::services::ServeDir;
-use rand::Rng;
-use geo::{Point, Contains, BoundingRect, LineString, Polygon};
+use axum::{
+    Json, Router,
+    extract::Path,
+    http,
+    response::{IntoResponse, Response},
+    routing::{get, post},
+};
+use geo::{BoundingRect, Contains, GeodesicDistance, LineString, Point, Polygon};
 use geojson::GeoJson;
+use http::HeaderMap;
+use rand::Rng;
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
-use reqwest::StatusCode;
-use http::HeaderMap;
+use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
 
 #[derive(Serialize)]
 struct LocationResponse {
     lon: f64,
     lat: f64,
+}
+
+#[derive(Deserialize)]
+struct DistanceRequest {
+    lat1: f64,
+    lon1: f64,
+    lat2: f64,
+    lon2: f64,
+}
+
+#[derive(Serialize)]
+struct DistanceResponse {
+    distance_meters: f64,
+    distance_km: f64,
 }
 
 #[tokio::main]
@@ -23,6 +43,7 @@ async fn main() {
         .route("/api/api-key", get(api_key_handler))
         .route("/api/random-location", get(random_location_handler))
         .route("/api/tiles/:type/:z/:x/:y", get(tile_handler))
+        .route("/api/distance", post(distance_handler))
         .fallback_service(ServeDir::new("static"));
 
     // run our app with hyper, listening globally on port 3000
@@ -44,7 +65,8 @@ fn get_random_location_in_country(path: &str) -> (f64, f64) {
     // Load and parse GeoJSON file
     let mut file = File::open(path).expect("Failed to open GeoJSON file");
     let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Failed to read file");
+    file.read_to_string(&mut contents)
+        .expect("Failed to read file");
     let geojson: GeoJson = contents.parse().expect("Invalid GeoJSON format");
 
     // Extract polygon from GeoJSON
@@ -56,7 +78,10 @@ fn get_random_location_in_country(path: &str) -> (f64, f64) {
                     if let geojson::Value::Polygon(coords) = geometry.value {
                         let exterior: Vec<geo::Coord<f64>> = coords[0]
                             .iter()
-                            .map(|pos| geo::Coord { x: pos[0], y: pos[1] })
+                            .map(|pos| geo::Coord {
+                                x: pos[0],
+                                y: pos[1],
+                            })
                             .collect();
                         let line_string = LineString::new(exterior);
                         result = Some(Polygon::new(line_string, vec![]));
@@ -66,7 +91,7 @@ fn get_random_location_in_country(path: &str) -> (f64, f64) {
             }
             result.unwrap_or_else(|| panic!("No polygon found in GeoJSON!"))
         }
-        _ => panic!("GeoJSON must be a Feature or FeatureCollection")
+        _ => panic!("GeoJSON must be a Feature or FeatureCollection"),
     };
 
     // Get bounding box
@@ -124,4 +149,17 @@ async fn tile_handler(
         eprintln!("Mapy.cz returned error: {}", response.status());
         Err(StatusCode::BAD_GATEWAY)
     }
+}
+
+async fn distance_handler(Json(request): Json<DistanceRequest>) -> Json<DistanceResponse> {
+    let point1 = Point::new(request.lon1, request.lat1);
+    let point2 = Point::new(request.lon2, request.lat2);
+
+    // Calculate distance in meters
+    let distance = point1.geodesic_distance(&point2);
+
+    Json(DistanceResponse {
+        distance_meters: distance,
+        distance_km: distance / 1000.0,
+    })
 }
