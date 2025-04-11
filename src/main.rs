@@ -57,7 +57,7 @@ async fn api_key_handler() -> String {
 }
 
 async fn random_location_handler() -> Json<LocationResponse> {
-    let (lon, lat) = get_random_location_in_country("czech_republic.json");
+    let (lon, lat) = get_random_location_in_country("czech_republic.geojson");
     Json(LocationResponse { lon, lat })
 }
 
