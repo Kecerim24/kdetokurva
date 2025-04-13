@@ -1,4 +1,3 @@
-
 async function main() {
     const apiKey = await fetch('/api/api-key').then(res => res.text()); // jednoho krásného dne bude api klíč giga tajnej, ale dnes to nebude
 
@@ -152,7 +151,6 @@ async function getRandomLocation() {
     }
 }
 
-
 async function createPano(locationData, apiKey) { // Added apiKey parameter
     const container = document.querySelector("#panoCont");
     const infoContainer = document.querySelector("#infoCont");
@@ -174,7 +172,6 @@ async function createPano(locationData, apiKey) { // Added apiKey parameter
         // show navigation - pano neighbors, click mask
         showNavigation: true,
     });
-
 
     console.log("error: ", panoData.error);
     //console.log("generated coordinates: ", locationData.lon, locationData.lat);
