@@ -137,7 +137,7 @@ main();
 
 async function getRandomLocation() {
     try {
-        const response = await fetch('/api/random-location');
+        const response = await fetch('/api/random-location.json');
         if (!response.ok) {
             throw new Error('Failed to fetch random location');
         }

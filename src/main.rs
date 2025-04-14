@@ -41,9 +41,9 @@ struct DistanceResponse {
 async fn main() {
     // build our application with the API route and static file serving
     let app = Router::new()
-        .route("/api/api-key", get(api_key_handler))
-        .route("/api/random-location", get(random_location_handler))
-        .route("/api/tiles/:type/:z/:x/:y", get(tile_handler))
+        .route("/api/api-key", get(api_key_handler)) // raw text
+        .route("/api/random-location.json", get(random_location_handler))
+        .route("/api/tiles/:type/:z/:x/:y", get(tile_handler)) // png
         .route("/api/distance.json", post(distance_handler))
         .fallback_service(ServeDir::new("static"));
 
