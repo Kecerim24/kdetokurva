@@ -5,7 +5,8 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use geo::{BoundingRect, Contains, GeodesicDistance, LineString, Point, Polygon};
+use directories::ProjectDirs;
+use geo::{BoundingRect, Contains, Distance, Geodesic, LineString, Point, Polygon};
 use geojson::GeoJson;
 use http::HeaderMap;
 use rand::Rng;
@@ -13,10 +14,8 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::fs::{File, create_dir_all};
 use std::io::{Read, Write};
-use std::path::PathBuf;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
-use directories::ProjectDirs;
 
 #[derive(Serialize)]
 struct LocationResponse {
@@ -45,8 +44,7 @@ async fn main() {
         .route("/api/api-key", get(api_key_handler))
         .route("/api/random-location", get(random_location_handler))
         .route("/api/tiles/:type/:z/:x/:y", get(tile_handler))
-        .route("/api/panorama/tiles/s/:pano_id/:tile_id", get(panorama_tile_handler))
-        .route("/api/distance", post(distance_handler))
+        .route("/api/distance.json", post(distance_handler))
         .fallback_service(ServeDir::new("static"));
 
     // run our app with hyper, listening globally on port 3000
@@ -125,10 +123,14 @@ async fn tile_handler(
     Path((tile_type, z, x, y)): Path<(String, u32, u32, u32)>,
 ) -> Result<Response, StatusCode> {
     // Get cache directory
-    let project_dirs = ProjectDirs::from("cz", "mapy", "kdetokurva")
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    let project_dirs =
+        ProjectDirs::from("cz", "mapy", "kdetokurva").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
     let cache_dir = project_dirs.cache_dir();
-    let tile_cache_dir = cache_dir.join("tiles").join(&tile_type).join(&z.to_string()).join(&x.to_string());
+    let tile_cache_dir = cache_dir
+        .join("tiles")
+        .join(&tile_type)
+        .join(z.to_string())
+        .join(x.to_string());
     let tile_path = tile_cache_dir.join(format!("{}.png", y));
 
     // Try to read from cache first
@@ -168,66 +170,9 @@ async fn tile_handler(
         // Cache the tile
         if let Err(e) = create_dir_all(&tile_cache_dir) {
             eprintln!("Failed to create cache directory: {}", e);
-        } else if let Err(e) = File::create(&tile_path).and_then(|mut f| f.write_all(&image_bytes)) {
+        } else if let Err(e) = File::create(&tile_path).and_then(|mut f| f.write_all(&image_bytes))
+        {
             eprintln!("Failed to cache tile: {}", e);
-        }
-
-        Ok((headers, image_bytes).into_response())
-    } else {
-        eprintln!("Mapy.cz returned error: {}", response.status());
-        Err(StatusCode::BAD_GATEWAY)
-    }
-}
-
-async fn panorama_tile_handler(
-    Path((pano_id, tile_id)): Path<(String, String)>,
-) -> Result<Response, StatusCode> {
-    // Get cache directory
-    let project_dirs = ProjectDirs::from("cz", "mapy", "kdetokurva")
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-    let cache_dir = project_dirs.cache_dir();
-    let tile_cache_dir = cache_dir.join("panorama").join(&pano_id);
-    let tile_path = tile_cache_dir.join(format!("{}.jpg", tile_id));
-
-    // Try to read from cache first
-    if let Ok(mut file) = File::open(&tile_path) {
-        let mut buffer = Vec::new();
-        if file.read_to_end(&mut buffer).is_ok() {
-            let mut headers = HeaderMap::new();
-            headers.insert(http::header::CONTENT_TYPE, "image/jpeg".parse().unwrap());
-            return Ok((headers, buffer).into_response());
-        }
-    }
-
-    // If not in cache, fetch from Mapy.cz
-    let api_key = env!("API_KEY").to_string();
-    let mapy_url = format!(
-        "https://api.mapy.cz/v1/panorama/tiles/s/{}/{}?apikey={}",
-        pano_id, tile_id, api_key
-    );
-
-    let client = reqwest::Client::new();
-    let response = client.get(&mapy_url).send().await.map_err(|e| {
-        eprintln!("Failed to fetch panorama tile from Mapy.cz: {}", e);
-        StatusCode::BAD_GATEWAY
-    })?;
-
-    if response.status().is_success() {
-        let mut headers = HeaderMap::new();
-        if let Some(content_type) = response.headers().get(http::header::CONTENT_TYPE) {
-            headers.insert(http::header::CONTENT_TYPE, content_type.clone());
-        }
-
-        let image_bytes = response.bytes().await.map_err(|e| {
-            eprintln!("Failed to read panorama tile bytes: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-        // Cache the tile
-        if let Err(e) = create_dir_all(&tile_cache_dir) {
-            eprintln!("Failed to create cache directory: {}", e);
-        } else if let Err(e) = File::create(&tile_path).and_then(|mut f| f.write_all(&image_bytes)) {
-            eprintln!("Failed to cache panorama tile: {}", e);
         }
 
         Ok((headers, image_bytes).into_response())
@@ -242,7 +187,7 @@ async fn distance_handler(Json(request): Json<DistanceRequest>) -> Json<Distance
     let point2 = Point::new(request.lon2, request.lat2);
 
     // Calculate distance in meters
-    let distance = point1.geodesic_distance(&point2);
+    let distance = Geodesic.distance(point1, point2);
 
     Json(DistanceResponse {
         distance_meters: distance,

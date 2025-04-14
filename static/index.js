@@ -90,7 +90,7 @@ async function main() {
         const startMarker = L.marker([panoData.lat, panoData.lon]).addTo(map);
         var polyline = L.polyline([[panoData.lat, panoData.lon], [guessMarker.getLatLng().lat, guessMarker.getLatLng().lng]], { color: 'red' }).addTo(map);
         // Get distance between guess and actual location
-        const response = await fetch('/api/distance', {
+        const response = await fetch('/api/distance.json', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
