@@ -87,7 +87,11 @@ async function main() {
     });
 
     document.getElementById('confirmButton').addEventListener('click', async function () {
-        const startMarker = L.marker([panoData.lat, panoData.lon]).addTo(map);
+        var finalFlagIcon = L.icon({
+            iconUrl: 'final_flag.svg',
+            iconAnchor: [0, 48],
+        });
+        const startMarker = L.marker([panoData.lat, panoData.lon], { icon: finalFlagIcon }).addTo(map);
         var polyline = L.polyline([[panoData.lat, panoData.lon], [guessMarker.getLatLng().lat, guessMarker.getLatLng().lng]], { color: 'red' }).addTo(map);
         // Get distance between guess and actual location
         const response = await fetch('/api/distance.json', {
@@ -106,6 +110,7 @@ async function main() {
         const resultBanner = document.getElementById('resultBanner');
         resultBanner.textContent = `Vzdálenost: ${distanceData.distance_km.toFixed(3)} km`;
         resultBanner.style.display = 'block';
+        document.getElementById('confirmButton').style.display = 'none';
 
         // Hide the banner after 4 seconds
         setTimeout(async () => {

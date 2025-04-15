@@ -3433,14 +3433,6 @@
                 this._logoLink.href = (function (t) {
                     const e = new URL("https://mapy.cz");
                     return (
-                        e.searchParams.append("x", t.lon.toString()),
-                        e.searchParams.append("y", t.lat.toString()),
-                        e.searchParams.append("z", "17"),
-                        e.searchParams.append("yaw", t.camera.yaw.toString()),
-                        e.searchParams.append("pitch", t.camera.pitch.toString()),
-                        e.searchParams.append("fov", t.camera.fov.toString()),
-                        e.searchParams.append("pid", t.pid.toString()),
-                        e.searchParams.append("panorama", "1"),
                         e.toString()
                     );
                 })({ lon: e.mark.lon, lat: e.mark.lat, pid: e.pid, camera: this._camera });
