@@ -124,7 +124,7 @@ async fn tile_handler(
 ) -> Result<Response, StatusCode> {
     // Get cache directory
     let project_dirs =
-        ProjectDirs::from("cz", "mapy", "kdetokurva").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+        ProjectDirs::from("cz", "kdetokurva", "kdetokurva").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
     let cache_dir = project_dirs.cache_dir();
     let tile_cache_dir = cache_dir
         .join("tiles")
