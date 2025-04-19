@@ -12,7 +12,7 @@ async function main() {
         const locationData = await getRandomLocation();
         panoData = await createPano(locationData, apiKey); // Pass API key
     }
-
+    panoCont.requestFullscreen();
     // Create map and center it on center of Czechia
     const map = L.map('map').setView([49.8175, 15.4730], 7);
 
@@ -47,7 +47,6 @@ async function main() {
     // Leaflet has a built-in map control for switching layers.
     L.control.layers(tileLayers).addTo(map);
 
-
     /*
     We also require you to include our logo somewhere over the map.
     We create our own map control implementing a documented interface,
@@ -73,6 +72,19 @@ async function main() {
     });
     new LogoControl().addTo(map);
 
+    // Add map toggle functionality
+    const mapToggle = document.getElementById('mapToggle');
+    const mapElement = document.getElementById('map');
+    mapToggle.addEventListener('click', () => {
+        if (mapElement.style.display === 'none' || mapElement.style.display === '') {
+            mapElement.style.display = 'block';
+            mapToggle.textContent = '❌';
+        } else {
+            mapElement.style.display = 'none';
+            mapToggle.textContent = '🗺️';
+        }
+    });
+
     // Add click handler to create markers on map click
     let guessMarker = null;
     map.on('click', function (e) {
@@ -83,14 +95,24 @@ async function main() {
 
         // Create new marker at clicked location
         guessMarker = L.marker(e.latlng).addTo(map);
-        document.getElementById('confirmButton').style.display = 'block';
+        const confirmButton = document.getElementById('confirmButton');
+        confirmButton.style.display = 'block';
+
+        // Position the button under the map
+        const mapRect = mapElement.getBoundingClientRect();
+        confirmButton.style.bottom = '25px';
+        confirmButton.style.left = mapRect.left + 'px';
+        confirmButton.style.width = mapRect.width + 'px';
     });
 
+    let resultBanner = document.getElementById('resultBanner');
     document.getElementById('confirmButton').addEventListener('click', async function () {
         var finalFlagIcon = L.icon({
             iconUrl: 'final_flag.svg',
             iconAnchor: [0, 48],
         });
+        document.getElementById('confirmButton').style.display = 'none';
+        document.getElementById('nextButton').style.display = 'block';
         const startMarker = L.marker([panoData.lat, panoData.lon], { icon: finalFlagIcon }).addTo(map);
         var polyline = L.polyline([[panoData.lat, panoData.lon], [guessMarker.getLatLng().lat, guessMarker.getLatLng().lng]], { color: 'red' }).addTo(map);
         // Get distance between guess and actual location
@@ -107,20 +129,17 @@ async function main() {
             })
         });
         const distanceData = await response.json();
-        const resultBanner = document.getElementById('resultBanner');
         resultBanner.textContent = `Vzdálenost: ${distanceData.distance_km.toFixed(3)} km`;
         resultBanner.style.display = 'block';
-        document.getElementById('confirmButton').style.display = 'none';
 
-        // Hide the banner after 4 seconds
-        setTimeout(async () => {
+        document.getElementById('nextButton').addEventListener('click', async function () {
             resultBanner.style.display = 'none';
+            document.getElementById('nextButton').style.display = 'none';
             // Reset everything
             map.removeLayer(startMarker);
             map.removeLayer(guessMarker);
             map.removeLayer(polyline);
             map.setView([49.8175, 15.4730], 7);
-            document.getElementById('confirmButton').style.display = 'none';
             while (panoCont.firstChild) {
                 panoCont.removeChild(panoCont.firstChild);
             }
@@ -134,7 +153,7 @@ async function main() {
                 const locationData = await getRandomLocation();
                 panoData = await createPano(locationData, apiKey);
             }
-        }, 4000);
+        });
     });
 }
 

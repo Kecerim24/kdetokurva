@@ -7,6 +7,26 @@ html {
     overflow: hidden;
 }
 
+
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    html {
+      transform: rotate(-90deg);
+      transform-origin: left top;
+      width: 100vh;
+      overflow-x: hidden;
+      position: absolute;
+      top: 100%;
+      left: 0;
+    }
+
+    #mapToggle {
+        transform: rotate(-90deg);
+        right: 20px;
+        bottom: 20px;
+    }
+  }
+  
+
 #panoCont {
     position: fixed;
     top: 0;
@@ -55,15 +75,26 @@ button:hover {
 
 #map {
     position: fixed;
-    bottom: 25px;
+    bottom: 65px;
     left: 25px;
-    width: 806px;
-    height: 494px;
+    width: 40vw;
+    height: calc(40vw * 0.613); /* Maintains 806:494 aspect ratio */
     z-index: 1000;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     opacity: 0.3;
     transition: opacity 0.2s ease-in-out;
+}
+
+@media screen and (max-width: 860px) {
+    #map {
+        display: none;
+        width: 80vw;
+        height: 80vh;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 30px;
+    }
 }
 
 #map:hover {
@@ -72,8 +103,9 @@ button:hover {
 
 #confirmButton {
     position: fixed;
-    bottom: 525px;
+    bottom: 25px;
     left: 25px;
+    width: 40vw;
     z-index: 1000;
     background: #4CAF50;
     color: white;
@@ -84,9 +116,36 @@ button:hover {
     font-size: 16px;
     transition: background-color 0.2s;
     display: none;
+    margin-top: 10px;
 }
 
-#confirmButton:hover {
+#nextButton {
+    position: fixed;
+    bottom: 25px;
+    left: 25px;
+    width: 40vw;
+    z-index: 1000;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    display: none;
+    margin-top: 10px;
+}
+
+@media screen and (max-width: 768px) {
+    #confirmButton, #nextButton {
+        width: 40vw;
+        left: 10%;
+        transform: translateX(-50%);
+    }
+}
+
+#confirmButton:hover, #nextButton:hover {
     background: #45a049;
 }
 
@@ -125,4 +184,28 @@ button:hover {
         opacity: 1;
         transform: translate(-50%, -50%);
     }
+}
+
+#mapToggle {
+    position: fixed;
+    bottom: 45px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+}
+
+@media screen and (max-width: 860px) {
+    #mapToggle {
+        display: block;
+    }
+}
+
+#mapToggle:hover {
+    background: rgba(0, 0, 0, 0.7);
 }
