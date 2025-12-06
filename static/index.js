@@ -1,14 +1,11 @@
 async function main() {
     const apiKey = await fetch('/api/api-key').then(res => res.text()); // jednoho krásného dne bude api klíč giga tajnej, ale dnes to nebude
+    const panoCont = document.getElementById('panoCont');
 
     const locationData = await getRandomLocation();
     var panoData = await createPano(locationData, apiKey); // Pass API key
 
     while (panoData.error) {
-        const panoCont = document.getElementById('panoCont');
-        while (panoCont.firstChild) {
-            panoCont.removeChild(panoCont.firstChild);
-        }
         const locationData = await getRandomLocation();
         panoData = await createPano(locationData, apiKey); // Pass API key
     }
@@ -140,16 +137,10 @@ async function main() {
             map.removeLayer(guessMarker);
             map.removeLayer(polyline);
             map.setView([49.8175, 15.4730], 7);
-            while (panoCont.firstChild) {
-                panoCont.removeChild(panoCont.firstChild);
-            }
             // Get new location and create new panorama
             const locationData = await getRandomLocation();
             panoData = await createPano(locationData, apiKey);
             while (panoData.error) {
-                while (panoCont.firstChild) {
-                    panoCont.removeChild(panoCont.firstChild);
-                }
                 const locationData = await getRandomLocation();
                 panoData = await createPano(locationData, apiKey);
             }
@@ -178,6 +169,11 @@ async function getRandomLocation() {
 async function createPano(locationData, apiKey) { // Added apiKey parameter
     const container = document.querySelector("#panoCont");
     const infoContainer = document.querySelector("#infoCont");
+
+    // Always start with a clean panorama container
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
 
     infoContainer.textContent = "Loading pano from position...";
 
