@@ -3,10 +3,10 @@
 
 <head>
 	<meta charset="utf-8" />
-	<meta name="description" content="k" />
+	<meta name="description" content="Hádej, kde to kurva je." />
 	<meta name="viewport" content="initial-scale=1.0" />
-	
-	<title>Lokace: Česká republika</title>
+
+	<title>kdetokurva</title>
 
 	<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
 	<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
@@ -18,29 +18,80 @@
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 
 	<link rel="stylesheet" href="styles.css">
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-		integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-
-	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-		integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-	<script type="text/javascript" async src='panorama.js' id="panoScript"></script>
 </head>
 
-<body>
-	<div id="panoCont"></div>
-	<div id="infoCont">Pano is loading...</div>
-	<div id="map"></div>
-	<button id="mapToggle">🗺️</button>
-	<button id="confirmButton"><b>Hádej</b></button>
-	<button id="nextButton"><b>Další</b></button>
-	<div id="resultBanner"></div>
-	<div id="logo">
-		<a href="https://mapy.cz/">
-			<img src="https://api.mapy.cz/img/api/logo.svg" alt="Mapy.cz">
-		</a>
-	</div>
+<body class="landing">
+	<main class="card">
+		<h1>kdetokurva</h1>
+		<p class="muted">Hádej, kde to kurva je. Sám nebo s kamarády.</p>
 
-	<script src="index.js"></script>
+		<label for="playerName">Tvoje jméno</label>
+		<input id="playerName" type="text" placeholder="např. Král Šumavy" maxlength="20" autocomplete="nickname" />
+
+		<button id="createRoom" class="primary">Vytvořit místnost</button>
+
+		<div class="divider"><span>nebo</span></div>
+
+		<label for="roomCode">Kód místnosti</label>
+		<div class="row">
+			<input id="roomCode" type="text" placeholder="ABCD" maxlength="4" autocapitalize="characters"
+				autocomplete="off" spellcheck="false" />
+			<button id="joinRoom">Připojit se</button>
+		</div>
+
+		<p id="landingError" class="error" hidden></p>
+	</main>
+
+	<script>
+		const nameInput = document.getElementById('playerName');
+		const codeInput = document.getElementById('roomCode');
+		const errorEl = document.getElementById('landingError');
+
+		nameInput.value = localStorage.getItem('kdetokurva_name') || '';
+
+		function saveName() {
+			const name = nameInput.value.trim();
+			if (name) localStorage.setItem('kdetokurva_name', name);
+			else localStorage.removeItem('kdetokurva_name');
+		}
+
+		function fail(message) {
+			errorEl.textContent = message;
+			errorEl.hidden = false;
+		}
+
+		document.getElementById('createRoom').addEventListener('click', async () => {
+			saveName();
+			try {
+				const res = await fetch('/api/rooms', { method: 'POST' });
+				if (!res.ok) throw new Error(res.statusText);
+				const { code } = await res.json();
+				location.href = `/game.html?room=${encodeURIComponent(code)}`;
+			} catch (err) {
+				fail('Místnost se nepodařilo vytvořit. Zkus to znovu.');
+			}
+		});
+
+		document.getElementById('joinRoom').addEventListener('click', async () => {
+			const code = codeInput.value.trim().toUpperCase();
+			if (code.length !== 4) return fail('Kód má čtyři znaky.');
+			saveName();
+			const res = await fetch(`/api/rooms/${encodeURIComponent(code)}`);
+			if (res.ok) location.href = `/game.html?room=${encodeURIComponent(code)}`;
+			else fail(`Místnost ${code} neexistuje.`);
+		});
+
+		codeInput.addEventListener('input', () => {
+			codeInput.value = codeInput.value.toUpperCase();
+			errorEl.hidden = true;
+		});
+		codeInput.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') document.getElementById('joinRoom').click();
+		});
+		nameInput.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') document.getElementById('createRoom').click();
+		});
+	</script>
 </body>
 
 </html>
